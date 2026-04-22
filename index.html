@@ -688,6 +688,7 @@
 <script>
 const TOTAL_QUESTIONS = 30;
 const QUESTIONS_PER_LEVEL = 10;
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzw6SdUe4pOQjobZ5oSrZt-tSEPqA0wRJMChrBNjaej8y624jcRoZbuomGkBhQV5EBdpQ/exec";
 
 const LEVELS = {
     easy:  { key: "easy",   label: "Mudah",  point: 2, note: "Perhatikan jaring-jaring berikut. Tentukan bentuk bangun ruang yang tepat setelah jaring-jaring tersebut dilipat." },
@@ -715,6 +716,8 @@ let score = 0;
 let locked = false;
 let playerName = "";
 let playerEmail = "";
+let savedToSheet = false;
+
 let stats = {
     easy: { correct: 0, total: 0 },
     medium: { correct: 0, total: 0 },
@@ -1020,6 +1023,49 @@ function getPerformanceBadge(acc, totalCorrect) {
     return { cls: "practice", title: "Perlu Latihan", desc: "Tetap bagus, tinggal diperkuat lagi." };
 }
 
+function sendResultToSheet() {
+    if (savedToSheet) return;
+    savedToSheet = true;
+
+    const totalAnswered = Object.values(stats).reduce((a, b) => a + b.total, 0);
+    const totalCorrect = Object.values(stats).reduce((a, b) => a + b.correct, 0);
+    const totalWrong = totalAnswered - totalCorrect;
+    const acc = percent(totalCorrect, totalAnswered);
+    const maxScore = 10 * LEVELS.easy.point + 10 * LEVELS.medium.point + 10 * LEVELS.hard.point;
+    const badge = getPerformanceBadge(acc, totalCorrect);
+
+    const payload = {
+        playerName,
+        playerEmail,
+        score,
+        accuracy: acc,
+        totalCorrect,
+        totalWrong,
+        totalAnswered,
+        maxScore,
+        badgeTitle: badge.title,
+        badgeDesc: badge.desc,
+        easyCorrect: stats.easy.correct,
+        easyTotal: stats.easy.total,
+        mediumCorrect: stats.medium.correct,
+        mediumTotal: stats.medium.total,
+        hardCorrect: stats.hard.correct,
+        hardTotal: stats.hard.total,
+        levelStats: stats
+    };
+
+    fetch(WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+    }).catch(err => {
+        console.log("Gagal kirim ke Sheet:", err);
+    });
+}
+
 function renderResult() {
     const totalAnswered = Object.values(stats).reduce((a, b) => a + b.total, 0);
     const totalCorrect = Object.values(stats).reduce((a, b) => a + b.correct, 0);
@@ -1087,6 +1133,8 @@ function renderResult() {
             </div>
         </div>
     `;
+
+    setTimeout(sendResultToSheet, 300);
 }
 
 function restartGame() {
@@ -1094,6 +1142,7 @@ function restartGame() {
     i = 0;
     score = 0;
     locked = false;
+    savedToSheet = false;
     stats = {
         easy: { correct: 0, total: 0 },
         medium: { correct: 0, total: 0 },
@@ -1174,6 +1223,7 @@ function startGame() {
     }
 
     data = buildQuestionSet();
+    savedToSheet = false;
     document.getElementById("playerTag").innerText = playerName;
     document.getElementById("cover").classList.add("hidden");
     document.getElementById("game").style.display = "block";
