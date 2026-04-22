@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spatial Visualization Game - Result Rapi + Badge</title>
+<style>
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        min-height: 100vh;
+        color: #fff;
+        background: radial-gradient(circle, #1b2a4a, #0b1d3a);
+    }
+
+    .container {
+        width: 92%;
+        max-width: 1020px;
+        margin: 0 auto;
+        padding: 20px 0 28px;
+    }
+
+    .header {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+        font-weight: 700;
+    }
+
+    .badge {
+        display: inline-block;
+        background: #ffb703;
+        color: #111;
+        padding: 6px 12px;
+        border-radius: 999px;
+        min-width: 72px;
+    }
+
+    #soalBox {
+        background: rgba(255,255,255,.96);
+        color: #111;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 14px;
+        box-shadow: 0 10px 24px rgba(0,0,0,.18);
+    }
+
+    #soalTitle {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        line-height: 1.35;
+    }
+
+    #levelNote {
+        font-size: 13px;
+        opacity: .82;
+        margin-bottom: 10px;
+    }
+
+    #soal {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow-x: auto;
+        padding: 6px 0 2px;
+    }
+
+    .options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .option {
+        position: relative;
+        min-height: 230px;
+        border-radius: 16px;
+        padding: 12px 10px 8px;
+        cursor: pointer;
+        background: rgba(255,255,255,.10);
+        border: 2px solid rgba(255,255,255,.16);
+        transition: transform .18s ease, background .18s ease, border-color .18s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .option:hover {
+        transform: translateY(-2px);
+        background: rgba(255,255,255,.16);
+        border-color: rgba(255,255,255,.28);
+    }
+
+    .option.disabled { pointer-events: none; }
+
+    .option.correct {
+        background: rgba(76,175,80,.22) !important;
+        border-color: rgba(76,175,80,.95) !important;
+        box-shadow: 0 0 0 2px rgba(76,175,80,.18) inset;
+    }
+
+    .option.wrong {
+        background: rgba(244,67,54,.18) !important;
+        border-color: rgba(244,67,54,.95) !important;
+        box-shadow: 0 0 0 2px rgba(244,67,54,.14) inset;
+    }
+
+    .option .label {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(255,255,255,.92);
+        color: #111;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .4px;
+    }
+
+    .option .mark {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,.36);
+        color: #fff;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        display: none;
+    }
+
+    .option.correct .mark, .option.wrong .mark { display: inline-block; }
+
+    svg {
+        width: 100%;
+        max-width: 175px;
+        height: auto;
+        display: block;
+    }
+
+    .faceText {
+        font-size: 14px;
+        font-weight: 700;
+        fill: #111;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        pointer-events: none;
+    }
+
+    .footerNote {
+        margin-top: 12px;
+        font-size: 13px;
+        opacity: .85;
+    }
+
+    .resultWrap {
+        display: grid;
+        gap: 16px;
+        text-align: left;
+        color: #111;
+    }
+
+    .resultHero {
+        background: linear-gradient(135deg, #ffffff, #f4f7fb);
+        border-radius: 20px;
+        padding: 22px;
+        box-shadow: 0 12px 28px rgba(0,0,0,.18);
+    }
+
+    .resultTitle {
+        font-size: 28px;
+        font-weight: 800;
+        margin: 0 0 6px;
+        color: #0b1d3a;
+    }
+
+    .resultSubtitle {
+        margin: 0 0 16px;
+        color: #445;
+        font-size: 14px;
+    }
+
+    .badgeRow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .perfBadge {
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: .2px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .perfBadge.fast { background: #e8f7ee; color: #177245; border: 1px solid #bfe9cf; }
+    .perfBadge.accurate { background: #eef4ff; color: #234aa8; border: 1px solid #c9d9ff; }
+    .perfBadge.practice { background: #fff4e5; color: #9a5b00; border: 1px solid #ffd79e; }
+
+    .scoreGrid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .scoreCard {
+        background: #fff;
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: 0 8px 20px rgba(0,0,0,.08);
+        border: 1px solid rgba(0,0,0,.06);
+    }
+
+    .scoreCard .num {
+        font-size: 26px;
+        font-weight: 800;
+        color: #0b1d3a;
+        line-height: 1.1;
+    }
+
+    .scoreCard .txt {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #556;
+    }
+
+    .levelResultBox {
+        background: #fff;
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 8px 20px rgba(0,0,0,.08);
+        border: 1px solid rgba(0,0,0,.06);
+    }
+
+    .levelResultBox h3 {
+        margin: 0 0 12px;
+        color: #0b1d3a;
+    }
+
+    .levelRow {
+        display: grid;
+        grid-template-columns: 100px 1fr 80px;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 13px;
+    }
+
+    .bar {
+        height: 12px;
+        background: #e9edf3;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .barFill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #4caf50, #73d27c);
+    }
+
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 8px;
+    }
+
+    .btn {
+        border: 0;
+        cursor: pointer;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+    .btnPrimary {
+        background: #ffb703;
+        color: #111;
+    }
+
+    .btnSecondary {
+        background: #0b1d3a;
+        color: #fff;
+    }
+
+    @media (max-width: 640px) {
+        .header { grid-template-columns: 1fr; }
+        .options { grid-template-columns: 1fr 1fr; }
+        .option { min-height: 192px; }
+        #soalTitle { font-size: 16px; }
+        .scoreGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .levelRow { grid-template-columns: 84px 1fr 64px; }
+    }
+
+    @media (max-width: 420px) {
+        .options { grid-template-columns: 1fr; }
+        .option { min-height: 182px; }
+        .scoreGrid { grid-template-columns: 1fr; }
+        .levelRow { grid-template-columns: 1fr; gap: 6px; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div>LEVEL: <span id="level" class="badge">-</span></div>
+        <div>SKOR: <span id="score">0</span></div>
+        <div>SOAL: <span id="no">1</span>/<span id="total">30</span></div>
+    </div>
+
+    <div id="soalBox">
+        <div id="soalTitle">Jika jaring-jaring ini dilipat, maka bentuknya seperti apa?</div>
+        <div id="levelNote"></div>
+        <div id="soal"></div>
+    </div>
+
+    <div id="opsi" class="options"></div>
+    <div class="footerNote">Pilih 1 dari 4 opsi. Kunci jawaban akan ditandai setelah dijawab.</div>
+</div>
+
+<script>
+const TOTAL_QUESTIONS = 30;
+const QUESTIONS_PER_LEVEL = 10;
+
+const LEVELS = {
+    easy:  { key: "easy",   label: "Mudah",  point: 2, note: "Perhatikan jaring-jaring berikut. Tentukan bentuk bangun ruang yang tepat setelah jaring-jaring tersebut dilipat." },
+    medium:{ key: "medium", label: "Sedang", point: 3, note: "Perhatikan gambar jaring-jaring bangun ruang berikut. Tentukan satu gambar bangun ruang yang sesuai dengan hasil lipatan jaring-jaring tersebut dengan mencocokkan posisi setiap sisinya." },
+    hard:  { key: "hard",   label: "Sulit",  point: 5, note: "Perhatikan gambar jaring-jaring bangun ruang berikut. Tentukan satu gambar bangun ruang yang sesuai dengan hasil lipatan jaring-jaring tersebut dengan mencocokkan posisi, arah, dan simbol pada setiap sisinya." }
+};
+
+const TYPES_BY_LEVEL = {
+    easy:   ["kubus", "balok"],
+    medium: ["kubus", "balok", "limas"],
+    hard:   ["kubus", "balok", "limas", "prisma"]
+};
+
+const PALETTES = {
+    easy:   ["#ffadad", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#a0c4ff"],
+    medium: ["#ffffff", "#f4f4f4", "#e8e8e8", "#d8d8d8", "#c9c9c9", "#b9b9b9"],
+    hard:   ["#f8f8f8", "#eeeeee", "#dfdfdf", "#d2d2d2", "#c4c4c4", "#b6b6b6"]
+};
+
+const SYMBOLS = ["★", "●", "▲", "■", "◆", "✚", "✦", "⬟", "⬢", "⬣"];
+
+let data = [];
+let i = 0;
+let score = 0;
+let locked = false;
+let stats = {
+    easy: { correct: 0, total: 0 },
+    medium: { correct: 0, total: 0 },
+    hard: { correct: 0, total: 0 }
+};
+
+function shuffle(arr) {
+    const copy = [...arr];
+    for (let j = copy.length - 1; j > 0; j--) {
+        const k = Math.floor(Math.random() * (j + 1));
+        [copy[j], copy[k]] = [copy[k], copy[j]];
+    }
+    return copy;
+}
+
+function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function typeFaceCount(type) {
+    if (type === "kubus") return 6;
+    if (type === "balok") return 6;
+    if (type === "limas") return 5;
+    if (type === "prisma") return 5;
+    return 6;
+}
+
+function makePack(faceCount, levelKey) {
+    const colors = shuffle(PALETTES[levelKey]).slice(0, faceCount);
+    const symbols = levelKey === "hard" ? shuffle(SYMBOLS).slice(0, faceCount) : [];
+    return { colors, symbols };
+}
+
+function permutePack(pack, levelKey) {
+    const n = pack.colors.length;
+    const idx = shuffle([...Array(n).keys()]);
+    return {
+        colors: idx.map(i => pack.colors[i]),
+        symbols: levelKey === "hard" ? idx.map(i => pack.symbols[i]) : []
+    };
+}
+
+function faceMark(idx, x, y, pack, showSymbol) {
+    if (!showSymbol) return "";
+    return `<text x="${x}" y="${y}" class="faceText">${pack.symbols[idx] || ""}</text>`;
+}
+
+function buildNet(type, pack, levelKey, variant = 0) {
+    const c = pack.colors;
+    const showSymbol = levelKey === "hard";
+
+    if (type === "kubus") {
+        if (variant === 0) {
+            return `
+            <svg viewBox="0 0 200 200">
+                <rect x="80" y="80" width="40" height="40" fill="${c[0]}" stroke="#333" />
+                ${faceMark(0, 100, 100, pack, showSymbol)}
+                <rect x="80" y="40" width="40" height="40" fill="${c[1]}" stroke="#333" />
+                ${faceMark(1, 100, 60, pack, showSymbol)}
+                <rect x="80" y="120" width="40" height="40" fill="${c[2]}" stroke="#333" />
+                ${faceMark(2, 100, 140, pack, showSymbol)}
+                <rect x="40" y="80" width="40" height="40" fill="${c[3]}" stroke="#333" />
+                ${faceMark(3, 60, 100, pack, showSymbol)}
+                <rect x="120" y="80" width="40" height="40" fill="${c[4]}" stroke="#333" />
+                ${faceMark(4, 140, 100, pack, showSymbol)}
+                <rect x="80" y="0" width="40" height="40" fill="${c[5]}" stroke="#333" />
+                ${faceMark(5, 100, 20, pack, showSymbol)}
+            </svg>`;
+        }
+        return `
+        <svg viewBox="0 0 220 200">
+            <rect x="90" y="80" width="40" height="40" fill="${c[0]}" stroke="#333" />
+            ${faceMark(0, 110, 100, pack, showSymbol)}
+            <rect x="90" y="40" width="40" height="40" fill="${c[1]}" stroke="#333" />
+            ${faceMark(1, 110, 60, pack, showSymbol)}
+            <rect x="90" y="120" width="40" height="40" fill="${c[2]}" stroke="#333" />
+            ${faceMark(2, 110, 140, pack, showSymbol)}
+            <rect x="50" y="80" width="40" height="40" fill="${c[3]}" stroke="#333" />
+            ${faceMark(3, 70, 100, pack, showSymbol)}
+            <rect x="130" y="80" width="40" height="40" fill="${c[4]}" stroke="#333" />
+            ${faceMark(4, 150, 100, pack, showSymbol)}
+            <rect x="50" y="40" width="40" height="40" fill="${c[5]}" stroke="#333" />
+            ${faceMark(5, 70, 60, pack, showSymbol)}
+        </svg>`;
+    }
+
+    if (type === "balok") {
+        if (variant === 0) {
+            return `
+            <svg viewBox="0 0 240 200">
+                <rect x="80" y="80" width="60" height="40" fill="${c[0]}" stroke="#333" />
+                ${faceMark(0, 110, 100, pack, showSymbol)}
+                <rect x="80" y="40" width="60" height="40" fill="${c[1]}" stroke="#333" />
+                ${faceMark(1, 110, 60, pack, showSymbol)}
+                <rect x="80" y="120" width="60" height="40" fill="${c[2]}" stroke="#333" />
+                ${faceMark(2, 110, 140, pack, showSymbol)}
+                <rect x="20" y="80" width="60" height="40" fill="${c[3]}" stroke="#333" />
+                ${faceMark(3, 50, 100, pack, showSymbol)}
+                <rect x="140" y="80" width="60" height="40" fill="${c[4]}" stroke="#333" />
+                ${faceMark(4, 170, 100, pack, showSymbol)}
+                <rect x="80" y="160" width="60" height="40" fill="${c[5]}" stroke="#333" />
+                ${faceMark(5, 110, 180, pack, showSymbol)}
+            </svg>`;
+        }
+        return `
+        <svg viewBox="0 0 260 200">
+            <rect x="100" y="80" width="60" height="40" fill="${c[0]}" stroke="#333" />
+            ${faceMark(0, 130, 100, pack, showSymbol)}
+            <rect x="100" y="40" width="60" height="40" fill="${c[1]}" stroke="#333" />
+            ${faceMark(1, 130, 60, pack, showSymbol)}
+            <rect x="100" y="120" width="60" height="40" fill="${c[2]}" stroke="#333" />
+            ${faceMark(2, 130, 140, pack, showSymbol)}
+            <rect x="40" y="80" width="60" height="40" fill="${c[3]}" stroke="#333" />
+            ${faceMark(3, 70, 100, pack, showSymbol)}
+            <rect x="160" y="80" width="60" height="40" fill="${c[4]}" stroke="#333" />
+            ${faceMark(4, 190, 100, pack, showSymbol)}
+            <rect x="160" y="120" width="60" height="40" fill="${c[5]}" stroke="#333" />
+            ${faceMark(5, 190, 140, pack, showSymbol)}
+        </svg>`;
+    }
+
+    if (type === "limas") {
+        if (variant === 0) {
+            return `
+            <svg viewBox="0 0 220 210">
+                <rect x="80" y="80" width="60" height="60" fill="${c[0]}" stroke="#333" />
+                ${faceMark(0, 110, 110, pack, showSymbol)}
+                <polygon points="80,80 140,80 110,25" fill="${c[1]}" stroke="#333" />
+                ${faceMark(1, 110, 55, pack, showSymbol)}
+                <polygon points="140,80 140,140 190,110" fill="${c[2]}" stroke="#333" />
+                ${faceMark(2, 160, 110, pack, showSymbol)}
+                <polygon points="80,140 140,140 110,190" fill="${c[3]}" stroke="#333" />
+                ${faceMark(3, 110, 160, pack, showSymbol)}
+                <polygon points="80,80 80,140 30,110" fill="${c[4]}" stroke="#333" />
+                ${faceMark(4, 50, 110, pack, showSymbol)}
+            </svg>`;
+        }
+        return `
+        <svg viewBox="0 0 220 210">
+            <rect x="85" y="75" width="60" height="60" fill="${c[0]}" stroke="#333" />
+            ${faceMark(0, 115, 105, pack, showSymbol)}
+            <polygon points="85,75 145,75 115,20" fill="${c[1]}" stroke="#333" />
+            ${faceMark(1, 115, 50, pack, showSymbol)}
+            <polygon points="145,75 145,135 195,105" fill="${c[2]}" stroke="#333" />
+            ${faceMark(2, 165, 105, pack, showSymbol)}
+            <polygon points="85,135 145,135 115,190" fill="${c[3]}" stroke="#333" />
+            ${faceMark(3, 115, 155, pack, showSymbol)}
+            <polygon points="85,75 85,135 35,105" fill="${c[4]}" stroke="#333" />
+            ${faceMark(4, 55, 105, pack, showSymbol)}
+        </svg>`;
+    }
+
+    if (type === "prisma") {
+        if (variant === 0) {
+            return `
+            <svg viewBox="0 0 240 210">
+                <rect x="50" y="80" width="40" height="50" fill="${c[0]}" stroke="#333" />
+                ${faceMark(0, 70, 105, pack, showSymbol)}
+                <rect x="90" y="80" width="40" height="50" fill="${c[1]}" stroke="#333" />
+                ${faceMark(1, 110, 105, pack, showSymbol)}
+                <rect x="130" y="80" width="40" height="50" fill="${c[2]}" stroke="#333" />
+                ${faceMark(2, 150, 105, pack, showSymbol)}
+                <polygon points="90,80 130,80 110,35" fill="${c[3]}" stroke="#333" />
+                ${faceMark(3, 110, 60, pack, showSymbol)}
+                <polygon points="90,130 130,130 110,175" fill="${c[4]}" stroke="#333" />
+                ${faceMark(4, 110, 155, pack, showSymbol)}
+            </svg>`;
+        }
+        return `
+        <svg viewBox="0 0 240 210">
+            <rect x="80" y="65" width="40" height="50" fill="${c[0]}" stroke="#333" />
+            ${faceMark(0, 100, 90, pack, showSymbol)}
+            <rect x="120" y="65" width="40" height="50" fill="${c[1]}" stroke="#333" />
+            ${faceMark(1, 140, 90, pack, showSymbol)}
+            <rect x="160" y="65" width="40" height="50" fill="${c[2]}" stroke="#333" />
+            ${faceMark(2, 180, 90, pack, showSymbol)}
+            <polygon points="120,65 160,65 140,20" fill="${c[3]}" stroke="#333" />
+            ${faceMark(3, 140, 45, pack, showSymbol)}
+            <polygon points="120,115 160,115 140,160" fill="${c[4]}" stroke="#333" />
+            ${faceMark(4, 140, 140, pack, showSymbol)}
+        </svg>`;
+    }
+
+    return "";
+}
+
+function buildShape(type, pack, levelKey, variant = 0) {
+    const c = pack.colors;
+    const showSymbol = levelKey === "hard";
+
+    if (type === "kubus") {
+        return `
+        <svg viewBox="0 0 140 140">
+            <polygon points="55,20 95,40 55,60 15,40" fill="${c[1]}" stroke="#333" />
+            ${faceMark(1, 55, 40, pack, showSymbol)}
+            <polygon points="55,60 95,40 95,80 55,100" fill="${c[0]}" stroke="#333" />
+            ${faceMark(0, 78, 70, pack, showSymbol)}
+            <polygon points="55,60 15,40 15,80 55,100" fill="${c[3]}" stroke="#333" />
+            ${faceMark(3, 32, 70, pack, showSymbol)}
+        </svg>`;
+    }
+
+    if (type === "balok") {
+        return `
+        <svg viewBox="0 0 140 140">
+            <polygon points="40,20 110,40 80,60 10,40" fill="${c[1]}" stroke="#333" />
+            ${faceMark(1, 68, 40, pack, showSymbol)}
+            <polygon points="80,60 110,40 110,80 80,100" fill="${c[0]}" stroke="#333" />
+            ${faceMark(0, 96, 70, pack, showSymbol)}
+            <polygon points="80,60 10,40 10,80 80,100" fill="${c[3]}" stroke="#333" />
+            ${faceMark(3, 42, 70, pack, showSymbol)}
+        </svg>`;
+    }
+
+    if (type === "limas") {
+        return `
+        <svg viewBox="0 0 140 140">
+            <polygon points="70,20 110,75 70,110 30,75" fill="${c[1]}" stroke="#333" />
+            ${faceMark(1, 70, 70, pack, showSymbol)}
+            <polygon points="70,20 110,75 70,118" fill="${c[2]}" stroke="#333" />
+            ${faceMark(2, 88, 84, pack, showSymbol)}
+            <polygon points="70,20 30,75 70,118" fill="${c[3]}" stroke="#333" />
+            ${faceMark(3, 52, 84, pack, showSymbol)}
+            <polygon points="70,110 110,75 70,118 30,75" fill="${c[0]}" opacity="0.28" stroke="#333" />
+        </svg>`;
+    }
+
+    if (type === "prisma") {
+        return `
+        <svg viewBox="0 0 150 140">
+            <polygon points="35,95 70,60 70,110" fill="${c[3]}" stroke="#333" />
+            ${faceMark(3, 58, 86, pack, showSymbol)}
+            <polygon points="85,95 120,60 120,110" fill="${c[4]}" stroke="#333" />
+            ${faceMark(4, 108, 86, pack, showSymbol)}
+            <polygon points="35,95 85,95 120,60 70,60" fill="${c[0]}" stroke="#333" />
+            ${faceMark(0, 78, 80, pack, showSymbol)}
+            <polygon points="35,95 85,95 120,110 70,110" fill="${c[1]}" stroke="#333" />
+            ${faceMark(1, 78, 108, pack, showSymbol)}
+            <polygon points="70,60 120,60 120,110 70,110" fill="${c[2]}" stroke="#333" opacity="0.78" />
+            ${faceMark(2, 95, 86, pack, showSymbol)}
+        </svg>`;
+    }
+
+    return "";
+}
+
+function makeQuestion(levelKey) {
+    const level = LEVELS[levelKey];
+    const type = pickRandom(TYPES_BY_LEVEL[levelKey]);
+    const faceCount = typeFaceCount(type);
+    const correctPack = makePack(faceCount, levelKey);
+
+    const soal = buildNet(type, correctPack, levelKey, Math.random() < 0.5 ? 0 : 1);
+    const correct = buildShape(type, correctPack, levelKey, 0);
+
+    const options = [correct];
+    const seen = new Set([correct]);
+
+    while (options.length < 4) {
+        const wrongPack = permutePack(correctPack, levelKey);
+        const wrong = buildShape(type, wrongPack, levelKey, 0);
+        if (!seen.has(wrong)) {
+            seen.add(wrong);
+            options.push(wrong);
+        }
+    }
+
+    const shuffled = shuffle(options);
+
+    return {
+        levelKey,
+        levelLabel: level.label,
+        point: level.point,
+        note: level.note,
+        soal,
+        opsi: shuffled,
+        jawaban: shuffled.indexOf(correct)
+    };
+}
+
+function buildQuestionSet() {
+    const easy = [];
+    const medium = [];
+    const hard = [];
+    for (let x = 0; x < QUESTIONS_PER_LEVEL; x++) easy.push(makeQuestion("easy"));
+    for (let x = 0; x < QUESTIONS_PER_LEVEL; x++) medium.push(makeQuestion("medium"));
+    for (let x = 0; x < QUESTIONS_PER_LEVEL; x++) hard.push(makeQuestion("hard"));
+    return [...shuffle(easy), ...shuffle(medium), ...shuffle(hard)];
+}
+
+function percent(n, d) {
+    if (!d) return 0;
+    return Math.round((n / d) * 100);
+}
+
+function getPerformanceBadge(acc, totalCorrect) {
+    if (acc >= 90 && totalCorrect >= 24) {
+        return { cls: "fast", title: "Sangat Cepat", desc: "Akurasi tinggi dan hasil sangat kuat." };
+    }
+    if (acc >= 70) {
+        return { cls: "accurate", title: "Akurat", desc: "Jawabanmu cukup stabil dan tepat." };
+    }
+    return { cls: "practice", title: "Perlu Latihan", desc: "Tetap bagus, tinggal diperkuat lagi." };
+}
+
+function renderResult() {
+    const totalAnswered = Object.values(stats).reduce((a, b) => a + b.total, 0);
+    const totalCorrect = Object.values(stats).reduce((a, b) => a + b.correct, 0);
+    const totalWrong = totalAnswered - totalCorrect;
+    const acc = percent(totalCorrect, totalAnswered);
+    const maxScore = 10 * LEVELS.easy.point + 10 * LEVELS.medium.point + 10 * LEVELS.hard.point;
+    const badge = getPerformanceBadge(acc, totalCorrect);
+
+    const levelRows = Object.values(LEVELS).map(l => {
+        const s = stats[l.key];
+        const p = percent(s.correct, s.total);
+        return `
+            <div class="levelRow">
+                <div><strong>${l.label}</strong></div>
+                <div class="bar"><div class="barFill" style="width:${p}%"></div></div>
+                <div style="text-align:right;"><strong>${s.correct}/${s.total}</strong></div>
+            </div>
+        `;
+    }).join("");
+
+    document.querySelector(".container").innerHTML = `
+        <div class="resultWrap">
+            <div class="resultHero">
+                <h1 class="resultTitle">Hasil Akhir</h1>
+                <p class="resultSubtitle">Permainan selesai. Berikut ringkasan hasil pengerjaan kamu.</p>
+
+                <div class="badgeRow">
+                    <div class="perfBadge ${badge.cls}">${badge.title}</div>
+                    <div class="perfBadge accurate">Akurasi ${acc}%</div>
+                </div>
+                <div style="margin-top:-4px; margin-bottom:16px; color:#445; font-size:13px;">${badge.desc}</div>
+
+                <div class="scoreGrid">
+                    <div class="scoreCard">
+                        <div class="num">${score}</div>
+                        <div class="txt">Skor diperoleh</div>
+                    </div>
+                    <div class="scoreCard">
+                        <div class="num">${acc}%</div>
+                        <div class="txt">Akurasi</div>
+                    </div>
+                    <div class="scoreCard">
+                        <div class="num">${totalCorrect}</div>
+                        <div class="txt">Jawaban benar</div>
+                    </div>
+                    <div class="scoreCard">
+                        <div class="num">${totalWrong}</div>
+                        <div class="txt">Jawaban salah</div>
+                    </div>
+                </div>
+
+                <div style="margin-top:14px; font-size:13px; color:#445;">
+                    Skor maksimum: <strong>${maxScore}</strong> | Soal terjawab: <strong>${totalAnswered}</strong>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btnPrimary" onclick="restartGame()">Main lagi</button>
+                    <button class="btn btnSecondary" onclick="window.scrollTo({top:0, behavior:'smooth'})">Kembali ke atas</button>
+                </div>
+            </div>
+
+            <div class="levelResultBox">
+                <h3>Ringkasan per level</h3>
+                ${levelRows}
+            </div>
+        </div>
+    `;
+}
+
+function restartGame() {
+    data = buildQuestionSet();
+    i = 0;
+    score = 0;
+    locked = false;
+    stats = {
+        easy: { correct: 0, total: 0 },
+        medium: { correct: 0, total: 0 },
+        hard: { correct: 0, total: 0 }
+    };
+    document.body.innerHTML = `
+        <div class="container">
+            <div class="header">
+                <div>LEVEL: <span id="level" class="badge">-</span></div>
+                <div>SKOR: <span id="score">0</span></div>
+                <div>SOAL: <span id="no">1</span>/<span id="total">${data.length}</span></div>
+            </div>
+
+            <div id="soalBox">
+                <div id="soalTitle">Jika jaring-jaring ini dilipat, maka bentuknya seperti apa?</div>
+                <div id="levelNote"></div>
+                <div id="soal"></div>
+            </div>
+
+            <div id="opsi" class="options"></div>
+            <div class="footerNote">Pilih 1 dari 4 opsi. Kunci jawaban akan ditandai setelah dijawab.</div>
+        </div>
+    `;
+    document.getElementById("total").innerText = data.length;
+    render();
+}
+
+function render() {
+    locked = false;
+
+    if (i >= data.length) {
+        renderResult();
+        return;
+    }
+
+    const d = data[i];
+    document.getElementById("level").innerText = d.levelLabel;
+    document.getElementById("no").innerText = i + 1;
+    document.getElementById("soal").innerHTML = d.soal;
+    document.getElementById("levelNote").innerText = d.note;
+    document.getElementById("score").innerText = score;
+    document.getElementById("total").innerText = data.length;
+
+    document.getElementById("opsi").innerHTML = d.opsi.map((o, idx) => `
+        <div class="option" onclick="cek(${idx}, this)">
+            <div class="label">Opsi ${idx + 1}</div>
+            <div class="mark">Pilih</div>
+            ${o}
+        </div>
+    `).join("");
+}
+
+function cek(idx, el) {
+    if (locked) return;
+    locked = true;
+
+    const d = data[i];
+    const all = document.querySelectorAll(".option");
+    all.forEach(x => x.classList.add("disabled"));
+
+    stats[d.levelKey].total += 1;
+
+    if (idx === d.jawaban) {
+        el.classList.add("correct");
+        const mark = el.querySelector(".mark");
+        if (mark) mark.innerText = "Benar";
+        score += d.point;
+        stats[d.levelKey].correct += 1;
+    } else {
+        el.classList.add("wrong");
+        const mark = el.querySelector(".mark");
+        if (mark) mark.innerText = "Salah";
+
+        if (all[d.jawaban]) {
+            all[d.jawaban].classList.add("correct");
+            const kunci = all[d.jawaban].querySelector(".mark");
+            if (kunci) kunci.innerText = "Kunci";
+        }
+    }
+
+    document.getElementById("score").innerText = score;
+    setTimeout(() => { i++; render(); }, 850);
+}
+
+data = buildQuestionSet();
+document.getElementById("total").innerText = data.length;
+render();
+</script>
+</body>
+</html>
